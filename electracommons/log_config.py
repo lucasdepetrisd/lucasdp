@@ -89,6 +89,18 @@ class PrefectLogger(object):
             if self.__log_path is None:
                 self.__log_path = LOG_PATH
 
+            if not os.path.isdir(os.path.dirname(self.__log_path)):
+                prefect_logger_aux = prefect_logging.get_run_logger()
+
+                dirs_superiores =  os.path.abspath(os.path.join(LOG_PATH ,"../../../.."))
+                path_relativo = os.path.join("~", os.path.relpath(FILE_PATH, dirs_superiores))
+
+                prefect_logger_aux.info("No se encontro el directorio. Creandolo en la carpeta del script: %s", path_relativo)
+                os.mkdir(os.path.dirname(self.__log_path))
+                # error_msg = "No se pudo determinar el directorio del archivo de logging"
+                # prefect_logger.error(error_msg)
+                # raise FileExistsError(error_msg)
+
             self.handler = TimedRotatingFileHandler(
                 filename=self.__log_path,
                 when=self.__when,
