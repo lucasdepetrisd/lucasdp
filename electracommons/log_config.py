@@ -21,14 +21,12 @@ from prefect import runtime
 from prefect import logging as prefect_logging
 from prefect.logging.formatters import PrefectFormatter
 
-import lib_programname
-# import __main__
-
-CALLER_SCRIPT_PATH = str(lib_programname.get_path_executed_script())
-FILE_NAME = os.path.splitext(os.path.basename(CALLER_SCRIPT_PATH))[0]
-FILE_PATH = os.path.join(os.path.dirname(CALLER_SCRIPT_PATH))
-LOG_PATH = os.path.join(os.path.dirname(
-    CALLER_SCRIPT_PATH), 'logs', f"{FILE_NAME}.log")
+# CALLER_SCRIPT_PATH = str(lib_programname.get_path_executed_script())
+# CALLER_SCRIPT_PATH = os.path.abspath(__main__.__file__)
+# FILE_NAME = os.path.splitext(os.path.basename(CALLER_SCRIPT_PATH))[0]
+# FILE_PATH = os.path.join(os.path.dirname(CALLER_SCRIPT_PATH))
+# LOG_PATH = os.path.join(os.path.dirname(
+#     CALLER_SCRIPT_PATH), 'logs', f"{FILE_NAME}.log")
 
 
 class RemoveSpecificLogs(logging.Filter):
@@ -57,7 +55,7 @@ class PrefectLogger(object):
         DEFAULT_BACKUP_COUNT (int): Número de archivos de log de respaldo a retener.
 
     Métodos:
-        __init__(self, log_path: str = None):
+        __init__(self, scriptname, log_path: str = None):
             Inicializa la instancia de PrefectLogger.
 
         __initialize_logger(self):
@@ -66,18 +64,27 @@ class PrefectLogger(object):
         obtener_logger_prefect(self):
             Obtiene el logger de Prefect.
 
-        cambiar_rotfile_handler_params(self, log_path: str = None, when: str = DEFAULT_WHEN, interval: int = DEFAULT_INTERVAL, backup_count: int = DEFAULT_BACKUP_COUNT):
+        cambiar_rotfile_handler_params(self, log_path: str = None, 
+                                        when: str = DEFAULT_WHEN, 
+                                        interval: int = DEFAULT_INTERVAL, 
+                                        backup_count: int = DEFAULT_BACKUP_COUNT):
             Cambia los parámetros del manejador de archivos rotativos.
 
     """
 
-    DEFAULT_LOG_PATH = LOG_PATH
+    DEFAULT_LOG_PATH = ""
     DEFAULT_WHEN = 'W0'
     DEFAULT_INTERVAL = 1
     DEFAULT_BACKUP_COUNT = 12
 
-    def __init__(self, log_path: str = None):
+    def __init__(self, script_path: str, log_path: str = None):
+        self.script_path = script_path
+        self.script_dir = os.path.dirname(self.script_path)
+        self.script_name = os.path.splitext(os.path.basename(script_path))[0]
+        self.DEFAULT_LOG_PATH = os.path.join(
+            self.script_dir, 'logs', f"{self.script_name}.log")
         self.__log_path = log_path or self.DEFAULT_LOG_PATH
+
         self.__when = self.DEFAULT_WHEN
         self.__interval = self.DEFAULT_INTERVAL
         self.__backup_count = self.DEFAULT_BACKUP_COUNT
@@ -87,15 +94,18 @@ class PrefectLogger(object):
     def __initialize_logger(self):
         if runtime.flow_run.name is not None or runtime.task_run.name is not None:
             if self.__log_path is None:
-                self.__log_path = LOG_PATH
+                self.__log_path = self.DEFAULT_LOG_PATH
 
             if not os.path.isdir(os.path.dirname(self.__log_path)):
                 prefect_logger_aux = prefect_logging.get_run_logger()
 
-                dirs_superiores =  os.path.abspath(os.path.join(LOG_PATH ,"../../../.."))
-                path_relativo = os.path.join("~", os.path.relpath(FILE_PATH, dirs_superiores))
+                dirs_superiores = os.path.abspath(
+                    os.path.join(self.DEFAULT_LOG_PATH, "../../../.."))
+                path_relativo = os.path.join(
+                    "~", os.path.relpath(self.script_name, dirs_superiores))
 
-                prefect_logger_aux.info("No se encontro el directorio. Creandolo en la carpeta del script: %s", path_relativo)
+                prefect_logger_aux.info(
+                    "No se encontro el directorio. Creandolo en la carpeta del script: %s", path_relativo)
                 os.mkdir(os.path.dirname(self.__log_path))
                 # error_msg = "No se pudo determinar el directorio del archivo de logging"
                 # prefect_logger.error(error_msg)
@@ -149,7 +159,10 @@ class PrefectLogger(object):
             self.__logger_prefect = self.__initialize_logger()
         return self.__logger_prefect
 
-    def cambiar_rotfile_handler_params(self, log_path: str = LOG_PATH, when: str = DEFAULT_WHEN, interval: int = DEFAULT_INTERVAL, backup_count: int = DEFAULT_BACKUP_COUNT):
+    def cambiar_rotfile_handler_params(self, log_path: str = DEFAULT_LOG_PATH,
+                                       when: str = DEFAULT_WHEN,
+                                       interval: int = DEFAULT_INTERVAL,
+                                       backup_count: int = DEFAULT_BACKUP_COUNT):
         """
         Cambia los parámetros del manejador de archivos rotativos.
 
@@ -164,11 +177,14 @@ class PrefectLogger(object):
         """
         if not os.path.exists(log_path):
             if self.__logger_prefect:
-               self.__logger_prefect.warning(f"Error al cambiar el directorio de salida. No se reconoce el directorio {log_path}. Se utilizara el predeterminado: {LOG_PATH}")
-            else: 
-                print(f"Error al cambiar el directorio de salida. No se reconoce el directorio {log_path}. Se utilizara el predeterminado: {LOG_PATH}")
+                self.__logger_prefect.warning("""Error al cambiar el directorio de salida. No se reconoce el directorio %s.
+                                              Se utilizara el predeterminado: %s""", log_path, self.DEFAULT_LOG_PATH)
+            else:
+                print(f"""Error al cambiar el directorio de salida. No se reconoce el directorio {log_path}.
+                      Se utilizara el predeterminado: {self.DEFAULT_LOG_PATH}""")
             self.__log_path = self.DEFAULT_LOG_PATH
-        else: self.__log_path = log_path
+        else:
+            self.__log_path = log_path
 
         self.__when = when or self.DEFAULT_WHEN
         self.__interval = interval or self.DEFAULT_INTERVAL
@@ -179,7 +195,8 @@ class PrefectLogger(object):
         return self.__logger_prefect
 
 
-# def obtener_nombre_script():
-#     # print("__main__.__file__: " + __main__.__file__) # Otra opcion es obtener importando __main__
-#     # print("programname: " + str(lib_programname.get_path_executed_script()))
-#     return FILE_NAME
+def obtener_path_script(file_path):
+    # print("__main__.__file__: " + __main__.__file__) # Otra opcion es obtener importando __main__
+    # print("programname: " + str(lib_programname.get_path_executed_script()))
+    file_path = os.path.abspath(file_path)
+    return file_path
