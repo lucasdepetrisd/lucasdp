@@ -14,19 +14,11 @@ Funciones:
 
 import os
 import logging
-# from typing import Union
 from logging.handlers import TimedRotatingFileHandler
 
 from prefect import runtime
 from prefect import logging as prefect_logging
 from prefect.logging.formatters import PrefectFormatter
-
-# CALLER_SCRIPT_PATH = str(lib_programname.get_path_executed_script())
-# CALLER_SCRIPT_PATH = os.path.abspath(__main__.__file__)
-# FILE_NAME = os.path.splitext(os.path.basename(CALLER_SCRIPT_PATH))[0]
-# FILE_PATH = os.path.join(os.path.dirname(CALLER_SCRIPT_PATH))
-# LOG_PATH = os.path.join(os.path.dirname(
-#     CALLER_SCRIPT_PATH), 'logs', f"{FILE_NAME}.log")
 
 
 class RemoveSpecificLogs(logging.Filter):
@@ -76,6 +68,12 @@ class PrefectLogger(object):
     DEFAULT_WHEN = 'W0'
     DEFAULT_INTERVAL = 1
     DEFAULT_BACKUP_COUNT = 12
+    DEFAULT_FORMATTER = PrefectFormatter(
+        format="%(asctime)s | %(levelname)-7s | %(name)s - %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        flow_run_fmt="%(asctime)s | %(levelname)-7s | Flow %(flow_name)r - %(message)s",
+        task_run_fmt="%(asctime)s | %(levelname)-7s | Task %(task_name)r - %(message)s"
+    )
 
     def __init__(self, script_path: str, log_path: str = None):
         self.script_path = script_path
@@ -90,61 +88,76 @@ class PrefectLogger(object):
         self.__backup_count = self.DEFAULT_BACKUP_COUNT
         self.handler = None
         self.__logger_prefect = None
+        self.__run_name = ""
 
     def __initialize_logger(self):
-        if runtime.flow_run.name is not None or runtime.task_run.name is not None:
-            if self.__log_path is None:
-                self.__log_path = self.DEFAULT_LOG_PATH
+        if self.__log_path is None:
+            self.__log_path = self.DEFAULT_LOG_PATH
 
-            if not os.path.isdir(os.path.dirname(self.__log_path)):
-                prefect_logger_aux = prefect_logging.get_run_logger()
+        if not os.path.isdir(os.path.dirname(self.__log_path)):
+            prefect_logger_aux = prefect_logging.get_run_logger()
 
-                dirs_superiores = os.path.abspath(
-                    os.path.join(self.DEFAULT_LOG_PATH, "../../../.."))
-                path_relativo = os.path.join(
-                    "~", os.path.relpath(self.script_name, dirs_superiores))
+            dirs_superiores = os.path.abspath(
+                os.path.join(self.DEFAULT_LOG_PATH, "../../../.."))
+            path_relativo = os.path.join(
+                "~", os.path.relpath(self.script_name, dirs_superiores))
 
-                prefect_logger_aux.info(
-                    "No se encontro el directorio. Creandolo en la carpeta del script: %s", path_relativo)
-                os.mkdir(os.path.dirname(self.__log_path))
-                # error_msg = "No se pudo determinar el directorio del archivo de logging"
-                # prefect_logger.error(error_msg)
-                # raise FileExistsError(error_msg)
+            prefect_logger_aux.info(
+                "No se encontro el directorio. Creandolo en la carpeta del script: %s", path_relativo)
+            os.mkdir(os.path.dirname(self.__log_path))
+            # error_msg = "No se pudo determinar el directorio del archivo de logging"
+            # prefect_logger.error(error_msg)
+            # raise FileExistsError(error_msg)
 
-            self.handler = TimedRotatingFileHandler(
-                filename=self.__log_path,
-                when=self.__when,
-                interval=self.__interval,
-                backupCount=self.__backup_count
-            )
+        self.handler = TimedRotatingFileHandler(
+            filename=self.__log_path,
+            when=self.__when,
+            interval=self.__interval,
+            backupCount=self.__backup_count
+        )
 
-            formatter = PrefectFormatter(
-                format="%(asctime)s | %(levelname)-7s | %(name)s - %(message)s",
-                datefmt="%Y-%m-%d %H:%M:%S",
-                flow_run_fmt="%(asctime)s | %(levelname)-7s | Flow %(flow_name)r - %(message)s",
-                task_run_fmt="%(asctime)s | %(levelname)-7s | Task %(task_name)r - %(message)s"
-            )
-            self.handler.setFormatter(formatter)
+        self.handler.setFormatter(self.DEFAULT_FORMATTER)
 
-            root_logger = logging.getLogger()
-            prefect_logger = prefect_logging.get_run_logger()
+        root_logger = logging.getLogger()
+        prefect_logger = prefect_logging.get_run_logger()
+
+        # region Añadir handler al logger de prefect
+
+        # Check if the handler is already present in prefect_logger.logger.handlers
+        prefect_rotfile_handler_present = any(isinstance(
+            h, type(self.handler)) for h in prefect_logger.logger.handlers)
+
+        if prefect_rotfile_handler_present:
+            # Replace the existing handler with self.handler
+            for i, h in enumerate(prefect_logger.logger.handlers):
+                if isinstance(h, type(self.handler)):
+                    prefect_logger.logger.handlers[i] = self.handler
+                    break
+        else:
+            # Add the handler if not present
             prefect_logger.logger.addHandler(self.handler)
 
-            # Check if the handler is already present in root_logger.handlers
-            rotfile_handler_present = any(isinstance(
-                h, type(self.handler)) for h in root_logger.handlers)
+        # endregion Añadir handler al logger de prefect
 
-            if rotfile_handler_present:
-                # Replace the existing handler with self.handler
-                for i, h in enumerate(root_logger.handlers):
-                    if isinstance(h, type(self.handler)):
-                        root_logger.handlers[i] = self.handler
-                        break
-            else:
-                # Add the handler if not present
-                root_logger.addHandler(self.handler)
+        # region Añadir handler al logger root
 
-            return prefect_logger
+        # Check if the handler is already present in root_logger.handlers
+        root_rotfile_handler_present = any(isinstance(
+            h, type(self.handler)) for h in root_logger.handlers)
+
+        if root_rotfile_handler_present:
+            # Replace the existing handler with self.handler
+            for i, h in enumerate(root_logger.handlers):
+                if isinstance(h, type(self.handler)):
+                    root_logger.handlers[i] = self.handler
+                    break
+        else:
+            # Add the handler if not present
+            root_logger.addHandler(self.handler)
+
+        # endregion Añadir handler al logger root
+
+        return prefect_logger
         # else:
         #     raise error
 
@@ -155,8 +168,15 @@ class PrefectLogger(object):
         Retorna:
             prefect_logger: Instancia del logger de Prefect.
         """
-        if self.__logger_prefect is None:
-            self.__logger_prefect = self.__initialize_logger()
+        # Obtengo el valor del flujo o tarea desde el que se llama la función
+        actual_run_name = runtime.flow_run.name or runtime.task_run.name
+
+        if actual_run_name:
+            # Si es la primera vez que se llama desde ese flujo o tarea inicializo el logger
+            if not self.__run_name or self.__run_name != actual_run_name:
+                self.__run_name = actual_run_name
+                self.__logger_prefect = self.__initialize_logger()
+
         return self.__logger_prefect
 
     def cambiar_rotfile_handler_params(self, log_path: str = DEFAULT_LOG_PATH,
