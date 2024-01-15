@@ -31,10 +31,6 @@ class RemoveSpecificLogs(logging.Filter):
         # Devuelve False si alguno de los records tiene el string en el mensaje
         return not any(exclude_str in record.msg for exclude_str in strings_to_exclude)
 
-# class PrefectLogger(Union[logging.Logger, logging.LoggerAdapter]):
-#     def __init__(self):
-#         self.the_file = None
-
 
 class PrefectLogger(object):
     """
@@ -50,7 +46,7 @@ class PrefectLogger(object):
         __init__(self, scriptname, log_path: str = None):
             Inicializa la instancia de PrefectLogger.
 
-        __initialize_logger(self):
+        _initialize_logger(self):
             Inicializa el logger con los parámetros configurados.
 
         obtener_logger_prefect(self):
@@ -81,20 +77,20 @@ class PrefectLogger(object):
         self.script_name = os.path.splitext(os.path.basename(script_path))[0]
         self.DEFAULT_LOG_PATH = os.path.join(
             self.script_dir, 'logs', f"{self.script_name}.log")
-        self.__log_path = log_path or self.DEFAULT_LOG_PATH
+        self._log_path = log_path or self.DEFAULT_LOG_PATH
 
-        self.__when = self.DEFAULT_WHEN
-        self.__interval = self.DEFAULT_INTERVAL
-        self.__backup_count = self.DEFAULT_BACKUP_COUNT
+        self._when = self.DEFAULT_WHEN
+        self._interval = self.DEFAULT_INTERVAL
+        self._backup_count = self.DEFAULT_BACKUP_COUNT
         self.handler = None
-        self.__logger_prefect = None
-        self.__run_name = ""
+        self._logger_prefect = None
+        self._run_name = ""
 
-    def __initialize_logger(self):
-        if self.__log_path is None:
-            self.__log_path = self.DEFAULT_LOG_PATH
+    def _initialize_logger(self):
+        if self._log_path is None:
+            self._log_path = self.DEFAULT_LOG_PATH
 
-        if not os.path.isdir(os.path.dirname(self.__log_path)):
+        if not os.path.isdir(os.path.dirname(self._log_path)):
             prefect_logger_aux = prefect_logging.get_run_logger()
 
             dirs_superiores = os.path.abspath(
@@ -104,16 +100,16 @@ class PrefectLogger(object):
 
             prefect_logger_aux.info(
                 "No se encontro el directorio. Creandolo en la carpeta del script: %s", path_relativo)
-            os.mkdir(os.path.dirname(self.__log_path))
+            os.mkdir(os.path.dirname(self._log_path))
             # error_msg = "No se pudo determinar el directorio del archivo de logging"
             # prefect_logger.error(error_msg)
             # raise FileExistsError(error_msg)
 
         self.handler = TimedRotatingFileHandler(
-            filename=self.__log_path,
-            when=self.__when,
-            interval=self.__interval,
-            backupCount=self.__backup_count
+            filename=self._log_path,
+            when=self._when,
+            interval=self._interval,
+            backupCount=self._backup_count
         )
 
         self.handler.setFormatter(self.DEFAULT_FORMATTER)
@@ -173,11 +169,11 @@ class PrefectLogger(object):
 
         if actual_run_name:
             # Si es la primera vez que se llama desde ese flujo o tarea inicializo el logger
-            if not self.__run_name or self.__run_name != actual_run_name:
-                self.__run_name = actual_run_name
-                self.__logger_prefect = self.__initialize_logger()
+            if not self._run_name or self._run_name != actual_run_name:
+                self._run_name = actual_run_name
+                self._logger_prefect = self._initialize_logger()
 
-        return self.__logger_prefect
+        return self._logger_prefect
 
     def cambiar_rotfile_handler_params(self, log_path: str = DEFAULT_LOG_PATH,
                                        when: str = DEFAULT_WHEN,
@@ -196,27 +192,25 @@ class PrefectLogger(object):
             prefect_logger: Instancia actualizada del logger de Prefect.
         """
         if not os.path.exists(log_path):
-            if self.__logger_prefect:
-                self.__logger_prefect.warning("""Error al cambiar el directorio de salida. No se reconoce el directorio %s.
+            if self._logger_prefect:
+                self._logger_prefect.warning("""Error al cambiar el directorio de salida. No se reconoce el directorio %s.
                                               Se utilizara el predeterminado: %s""", log_path, self.DEFAULT_LOG_PATH)
             else:
                 print(f"""Error al cambiar el directorio de salida. No se reconoce el directorio {log_path}.
                       Se utilizara el predeterminado: {self.DEFAULT_LOG_PATH}""")
-            self.__log_path = self.DEFAULT_LOG_PATH
+            self._log_path = self.DEFAULT_LOG_PATH
         else:
-            self.__log_path = log_path
+            self._log_path = log_path
 
-        self.__when = when or self.DEFAULT_WHEN
-        self.__interval = interval or self.DEFAULT_INTERVAL
-        self.__backup_count = backup_count or self.DEFAULT_BACKUP_COUNT
+        self._when = when or self.DEFAULT_WHEN
+        self._interval = interval or self.DEFAULT_INTERVAL
+        self._backup_count = backup_count or self.DEFAULT_BACKUP_COUNT
         # Reinitialize the logger with updated parameters
-        self.__logger_prefect = self.__initialize_logger()
+        self._logger_prefect = self._initialize_logger()
 
-        return self.__logger_prefect
+        return self._logger_prefect
 
 
 def obtener_path_script(file_path):
-    # print("__main__.__file__: " + __main__.__file__) # Otra opcion es obtener importando __main__
-    # print("programname: " + str(lib_programname.get_path_executed_script()))
     file_path = os.path.abspath(file_path)
     return file_path
