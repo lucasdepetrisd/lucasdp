@@ -119,19 +119,20 @@ class PrefectLogger(object):
 
         # region Añadir handler al logger de prefect
 
+        if runtime.deployment.name is None:
         # Check if the handler is already present in prefect_logger.logger.handlers
-        prefect_rotfile_handler_present = any(isinstance(
-            h, type(self.handler)) for h in prefect_logger.logger.handlers)
+            prefect_rotfile_handler_present = any(isinstance(
+                h, type(self.handler)) for h in prefect_logger.logger.handlers)
 
-        if prefect_rotfile_handler_present:
-            # Replace the existing handler with self.handler
-            for i, h in enumerate(prefect_logger.logger.handlers):
-                if isinstance(h, type(self.handler)):
-                    prefect_logger.logger.handlers[i] = self.handler
-                    break
-        else:
-            # Add the handler if not present
-            prefect_logger.logger.addHandler(self.handler)
+            if prefect_rotfile_handler_present:
+                # Replace the existing handler with self.handler
+                for i, h in enumerate(prefect_logger.logger.handlers):
+                    if isinstance(h, type(self.handler)):
+                        prefect_logger.logger.handlers[i] = self.handler
+                        break
+            else:
+                # Add the handler if not present
+                prefect_logger.logger.addHandler(self.handler)
 
         # endregion Añadir handler al logger de prefect
 
@@ -165,7 +166,7 @@ class PrefectLogger(object):
             prefect_logger: Instancia del logger de Prefect.
         """
         # Obtengo el valor del flujo o tarea desde el que se llama la función
-        actual_run_name = runtime.flow_run.name or runtime.task_run.name
+        actual_run_name = runtime.task_run.name or runtime.flow_run.name
 
         if actual_run_name:
             # Si es la primera vez que se llama desde ese flujo o tarea inicializo el logger
