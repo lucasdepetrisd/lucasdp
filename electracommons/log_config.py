@@ -6,6 +6,8 @@ Este módulo proporciona funciones para configurar la configuración de registro
 para la rotación de archivos de registro y la aplicación de un formato personalizado
 para los mensajes de registro.
 
+Para funcionar correctamente el archivo de configuración de logging debe estar correctamente seteado en 
+
 Funciones:
     - obtener_nombre_script: Devuelve el nombre del script que realiza la llamada.
     - inicializar_logger_prefect: Inicializa el registro para Prefect, incluyendo
@@ -101,9 +103,6 @@ class PrefectLogger(object):
             prefect_logger_aux.info(
                 "No se encontro el directorio. Creandolo en la carpeta del script: %s", path_relativo)
             os.mkdir(os.path.dirname(self._log_path))
-            # error_msg = "No se pudo determinar el directorio del archivo de logging"
-            # prefect_logger.error(error_msg)
-            # raise FileExistsError(error_msg)
 
         self.handler = TimedRotatingFileHandler(
             filename=self._log_path,
@@ -117,46 +116,38 @@ class PrefectLogger(object):
         root_logger = logging.getLogger()
         prefect_logger = prefect_logging.get_run_logger()
 
-        # region Añadir handler al logger de prefect
-
+        # En caso que se ejecute desde la UI o API por un deployment tiene otro logger de prefect por lo que saldran duplicados
+        # Para solucionarlo solo configuramos el logger prefect si se ejecuta de manera manual.
         if runtime.deployment.name is None:
-        # Check if the handler is already present in prefect_logger.logger.handlers
+        # Check si el handler ya esta presente en prefect_logger.logger.handlers
             prefect_rotfile_handler_present = any(isinstance(
                 h, type(self.handler)) for h in prefect_logger.logger.handlers)
 
             if prefect_rotfile_handler_present:
-                # Replace the existing handler with self.handler
+                # Reemplazar handler existente por el nuevo self.handler
                 for i, h in enumerate(prefect_logger.logger.handlers):
                     if isinstance(h, type(self.handler)):
                         prefect_logger.logger.handlers[i] = self.handler
                         break
             else:
-                # Add the handler if not present
+                # Añadir handler si no esta
                 prefect_logger.logger.addHandler(self.handler)
 
-        # endregion Añadir handler al logger de prefect
-
-        # region Añadir handler al logger root
-
-        # Check if the handler is already present in root_logger.handlers
+        # Check si el handler ya esta presente en root_logger.handlers
         root_rotfile_handler_present = any(isinstance(
             h, type(self.handler)) for h in root_logger.handlers)
 
         if root_rotfile_handler_present:
-            # Replace the existing handler with self.handler
+            # Reemplazar handler existente por el nuevo self.handler
             for i, h in enumerate(root_logger.handlers):
                 if isinstance(h, type(self.handler)):
                     root_logger.handlers[i] = self.handler
                     break
         else:
-            # Add the handler if not present
+            # Añadir handler si no esta
             root_logger.addHandler(self.handler)
 
-        # endregion Añadir handler al logger root
-
         return prefect_logger
-        # else:
-        #     raise error
 
     def obtener_logger_prefect(self):
         """
@@ -206,7 +197,8 @@ class PrefectLogger(object):
         self._when = when or self.DEFAULT_WHEN
         self._interval = interval or self.DEFAULT_INTERVAL
         self._backup_count = backup_count or self.DEFAULT_BACKUP_COUNT
-        # Reinitialize the logger with updated parameters
+        
+        # Reinicializar el logger con los nuevos parámetros
         self._logger_prefect = self._initialize_logger()
 
         return self._logger_prefect
