@@ -9,22 +9,44 @@ Este paquete proporciona scripts comunes que se pueden reutilizar en varios proy
 electracommons/  
 ├── init.py  
 ├── log_config.py  
-<!-- ├── emails_manager.py   -->
+├── emails_handler.py
+├── sql_handler.py
 
 ## Uso
 
 ### Configuración de Registros (logging)
 
 ```python
-# Uso del módulo de configuración de registros
-from commonscripts import log_config
+from prefect import flow, task
 
-log_config.configure_logger()
+from electracommons.log_config import PrefectLogger
+
+logger_global = PrefectLogger(__file__)
+
+@task
+def mi_tarea(mensaje_tarea: str = ""):
+    logger = logger_global.obtener_logger_prefect()
+    logger.info("Iniciando tarea...")
+    logger.info("Hola %s desde la tarea", mensaje_tarea)
+    
+    # Cambio el archivo de salida
+    logger = logger_global.cambiar_rotfile_handler_params(r"C:\src\logeo\logs\hola.log")
+    logger.info("Tarea finalizada...")
+
+@flow
+def mi_flujo(mensaje_flujo: str = ""):
+    logger = logger_global.obtener_logger_prefect()
+    logger.info("Hola %s desde el flujo", mensaje_flujo)
+    mi_tarea(mensaje_flujo)
+
+if __name__ == '__main__':
+    mi_flujo()
 ```
 
 ## TODO
 
 * Agregar modulo de configuración de emails.
+* Probar y mejorar manejador de scripts SQL.
 
 <!-- ### Configuración de Correos
 
