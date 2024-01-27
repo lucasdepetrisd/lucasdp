@@ -9,8 +9,8 @@ Este paquete proporciona scripts comunes que se pueden reutilizar en varios proy
 electracommons/  
 ├── init.py  
 ├── log_config.py  
-├── emails_handler.py
-├── sql_handler.py
+├── sql_handler.py (MUT)  
+├── emails_handler.py (TBD)  
 
 ## Uso
 
@@ -45,8 +45,9 @@ if __name__ == '__main__':
 
 ## TODO
 
-* Agregar modulo de configuración de emails.
 * Probar y mejorar manejador de scripts SQL.
+  * Agregar ejemplo funcional
+* Agregar modulo de configuración de emails.
 
 <!-- ### Configuración de Correos
 
