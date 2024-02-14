@@ -1,4 +1,4 @@
 from .log_config import PrefectLogger, RemoveSpecificLogs
-from .log_utils.parallel_log_rotator import ParallelTimedRotatingFileHandler
+from electracommons.log_utils import ParallelTimedRotatingFileHandler
 
 __version__ = '1.0.0'
