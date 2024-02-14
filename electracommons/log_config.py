@@ -16,7 +16,7 @@ Funciones:
 
 import os
 import logging
-from .log_utils.parallel_log_rotator import ParallelTimedRotatingFileHandler
+from electracommons.log_utils.parallel_log_rotator import ParallelTimedRotatingFileHandler
 
 from prefect import runtime
 from prefect import logging as prefect_logging

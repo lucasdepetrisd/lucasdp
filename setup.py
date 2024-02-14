@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='electracommons',
-    version='0.5.1.2',
+    version='0.5.1.3',
     author='Lucas Depetris',
     author_email='lucasdepetris14@gmail.com',
     description='Módulos comunes de los proyectos de Electra',
