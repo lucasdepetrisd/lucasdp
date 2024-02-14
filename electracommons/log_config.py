@@ -16,7 +16,7 @@ Funciones:
 
 import os
 import logging
-from logging.handlers import TimedRotatingFileHandler
+from .log_utils.parallel_log_rotator import ParallelTimedRotatingFileHandler
 
 from prefect import runtime
 from prefect import logging as prefect_logging
@@ -33,8 +33,6 @@ class RemoveSpecificLogs(logging.Filter):
         # Devuelve False si alguno de los records tiene el string en el mensaje
         return not any(exclude_str in record.msg for exclude_str in strings_to_exclude)
 
-def namer(name):
-    return name.replace(".log", "") + ".log"
 
 class PrefectLogger(object):
     """
@@ -65,7 +63,7 @@ class PrefectLogger(object):
     """
 
     DEFAULT_LOG_PATH = ""
-    DEFAULT_WHEN = 'W0' # Rota el archivo semanalmente los lunes.
+    DEFAULT_WHEN = 'W0'  # Rota el archivo semanalmente los lunes.
     DEFAULT_INTERVAL = 1
     DEFAULT_BACKUP_COUNT = 12
     DEFAULT_FORMATTER = PrefectFormatter(
@@ -79,7 +77,8 @@ class PrefectLogger(object):
         self.script_path = script_path
         self.script_dir = os.path.dirname(self.script_path)
         self.script_name = os.path.splitext(os.path.basename(script_path))[0]
-        self.DEFAULT_LOG_PATH = os.path.join(self.script_dir, 'logs', self.script_name)
+        self.DEFAULT_LOG_PATH = os.path.join(
+            self.script_dir, 'logs', self.script_name)
         self._log_path = log_path or self.DEFAULT_LOG_PATH
 
         self._when = self.DEFAULT_WHEN
@@ -105,14 +104,12 @@ class PrefectLogger(object):
                 "No se encontro el directorio. Creandolo en la carpeta del script: %s", path_relativo)
             os.mkdir(os.path.dirname(self._log_path))
 
-        self.handler = TimedRotatingFileHandler(
+        self.handler = ParallelTimedRotatingFileHandler(
             filename=self._log_path,
             when=self._when,
             interval=self._interval,
             backupCount=self._backup_count
         )
-
-        self.handler.namer = namer
 
         self.handler.setFormatter(self.DEFAULT_FORMATTER)
 
@@ -122,7 +119,7 @@ class PrefectLogger(object):
         # En caso que se ejecute desde la UI o API por un deployment tiene otro logger de prefect por lo que saldran duplicados
         # Para solucionarlo solo configuramos el logger prefect si se ejecuta de manera manual.
         if runtime.deployment.name is None:
-        # Check si el handler ya esta presente en prefect_logger.logger.handlers
+            # Check si el handler ya esta presente en prefect_logger.logger.handlers
             prefect_rotfile_handler_present = any(isinstance(
                 h, type(self.handler)) for h in prefect_logger.logger.handlers)
 
