@@ -33,6 +33,8 @@ class RemoveSpecificLogs(logging.Filter):
         # Devuelve False si alguno de los records tiene el string en el mensaje
         return not any(exclude_str in record.msg for exclude_str in strings_to_exclude)
 
+def namer(name):
+    return name.replace(".log", "") + ".log"
 
 class PrefectLogger(object):
     """
@@ -110,7 +112,7 @@ class PrefectLogger(object):
             backupCount=self._backup_count
         )
 
-        self.handler.namer = lambda name: name + ".log"
+        self.handler.namer = namer
 
         self.handler.setFormatter(self.DEFAULT_FORMATTER)
 
@@ -198,7 +200,7 @@ class PrefectLogger(object):
         self._when = when or self.DEFAULT_WHEN
         self._interval = interval or self.DEFAULT_INTERVAL
         self._backup_count = backup_count or self.DEFAULT_BACKUP_COUNT
-        
+
         # Reinicializar el logger con los nuevos parámetros
         self._logger_prefect = self._initialize_logger()
 
