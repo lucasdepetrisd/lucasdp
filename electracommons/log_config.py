@@ -63,7 +63,7 @@ class PrefectLogger(object):
     """
 
     DEFAULT_LOG_PATH = ""
-    DEFAULT_WHEN = 'W0'
+    DEFAULT_WHEN = 'W0' # Rota el archivo semanalmente los lunes.
     DEFAULT_INTERVAL = 1
     DEFAULT_BACKUP_COUNT = 12
     DEFAULT_FORMATTER = PrefectFormatter(
@@ -77,8 +77,7 @@ class PrefectLogger(object):
         self.script_path = script_path
         self.script_dir = os.path.dirname(self.script_path)
         self.script_name = os.path.splitext(os.path.basename(script_path))[0]
-        self.DEFAULT_LOG_PATH = os.path.join(
-            self.script_dir, 'logs', f"{self.script_name}.log")
+        self.DEFAULT_LOG_PATH = os.path.join(self.script_dir, 'logs', self.script_name)
         self._log_path = log_path or self.DEFAULT_LOG_PATH
 
         self._when = self.DEFAULT_WHEN
@@ -110,6 +109,8 @@ class PrefectLogger(object):
             interval=self._interval,
             backupCount=self._backup_count
         )
+
+        self.handler.namer = lambda name: name + ".log"
 
         self.handler.setFormatter(self.DEFAULT_FORMATTER)
 
