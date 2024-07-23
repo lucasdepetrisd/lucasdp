@@ -1,12 +1,12 @@
-# Paquete electracommons
-Conjunto de scripts comunes a los proyectos de Electra
+# Paquete consulterscommons
+Conjunto de scripts comunes a los proyectos de consulters
 
 Este paquete proporciona scripts comunes que se pueden reutilizar en varios proyectos. Incluye funcionalidades para configuración de registros (logging). 
 <!-- y gestión de correos electrónicos. -->
 
 ## Estructura del Proyecto
 
-electracommons/  
+consulterscommons/  
 ├── init.py  
 ├── log_config.py  
 ├── sql_handler.py (MUT)  
@@ -19,7 +19,7 @@ electracommons/
 ```python
 from prefect import flow, task
 
-from electracommons.log_config import PrefectLogger
+from consulterscommons.log_config import PrefectLogger
 
 logger_global = PrefectLogger(__file__)
 

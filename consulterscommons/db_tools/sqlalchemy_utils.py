@@ -12,7 +12,7 @@ from sqlalchemy import MetaData
 import pandas as pd
 from prefect import task
 
-from electracommons.log_tools.prefect_log_config import PrefectLogger
+from consulterscommons.log_tools.prefect_log_config import PrefectLogger
 
 logger_global = PrefectLogger(__file__)
 

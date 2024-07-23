@@ -1,6 +1,6 @@
 from setuptools import setup, find_packages
 
-from electracommons import __version__
+from consulterscommons import __version__
 
 # extra_tests = [
 #     'tests'
@@ -11,14 +11,14 @@ from electracommons import __version__
 # ]
 
 setup(
-    name='electracommons',
+    name='consulterscommons',
     version=__version__,
 
     author='Lucas Depetris',
     author_email='lucasdepetris14@gmail.com',
-    description='Módulos comunes de los proyectos de Electra',
+    description='Módulos comunes de los proyectos de Consulters',
 
-    # packages=['electracommons'],
+    # packages=['consulterscommons'],
     packages=find_packages(), # Busca automáticamente los paquetes en la carpeta actual
     install_requires=[
         'keyring',

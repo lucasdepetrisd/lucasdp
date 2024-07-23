@@ -22,7 +22,7 @@ from prefect import runtime
 from prefect import logging as prefect_logging
 from prefect.logging.formatters import PrefectFormatter
 
-from electracommons.log_tools.parallel_log_rotator import ParallelTimedRotatingFileHandler
+from consulterscommons.log_tools.parallel_log_rotator import ParallelTimedRotatingFileHandler
 
 class RemoveSpecificLogs(logging.Filter):
     def filter(self, record):
