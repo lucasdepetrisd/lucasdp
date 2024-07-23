@@ -22,7 +22,7 @@ setup(
     packages=find_packages(), # Busca automáticamente los paquetes en la carpeta actual
     install_requires=[
         'keyring',
-        'pandas'
+        'pandas',
         'prefect',
         'sqlalchemy',
     ], # Dependencias de terceros
