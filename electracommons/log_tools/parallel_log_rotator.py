@@ -4,6 +4,7 @@ import os
 import time
 import re
 
+
 class ParallelTimedRotatingFileHandler(logging.handlers.TimedRotatingFileHandler):
     """
     I have created a class ParallelTimedRotatingFileHandler mainly aimed at allowing multiple processes writing in parallel to a log file. 
