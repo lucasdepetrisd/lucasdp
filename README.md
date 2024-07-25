@@ -77,6 +77,7 @@ Al cambiar la versión y hacer un commit en la rama principal se considerará co
 pip install git+https://github.com/Technological-Consulters/consulterscommons.git
 ```
 
+Finalmente se puede borrar la rama mergeada para limpiar el repositorio.
 
 ## TODO
 
