@@ -1,16 +1,13 @@
 # Paquete consulterscommons
 Conjunto de scripts comunes a los proyectos de consulters
 
-Este paquete proporciona scripts comunes que se pueden reutilizar en varios proyectos. Incluye funcionalidades para configuración de registros (logging). 
+Este paquete proporciona scripts comunes que se pueden reutilizar en varios proyectos. Incluye funcionalidades para configuración de registros (logging) y conexión a base de datos. 
 <!-- y gestión de correos electrónicos. -->
 
 ## Estructura del Proyecto
 
 consulterscommons/  
 ├── init.py  
-├── log_config.py  
-├── sql_handler.py (MUT)  
-├── emails_handler.py (TBD)  
 
 ## Uso
 
@@ -19,7 +16,7 @@ consulterscommons/
 ```python
 from prefect import flow, task
 
-from consulterscommons.log_config import PrefectLogger
+from consulterscommons.log_tools import PrefectLogger
 
 logger_global = PrefectLogger(__file__)
 
@@ -43,11 +40,43 @@ if __name__ == '__main__':
     mi_flujo()
 ```
 
+## ¿Como colaborar en el proyecto?
+### 1. Clonar el repositorio
+
+```bash
+git clone https://github.com/Technological-Consulters/consulterscommons.git
+cd consulterscommons
+```
+
+### 2. Crear una rama nueva
+```bash
+git checkout -b nombre_de_tu_rama
+```
+
+### 3. Realizar mejoras y hacer un commit
+```bash
+git add .
+git commit -m "Descripción clara de las mejoras realizadas"
+```
+
+### 4. Subir los cambios
+```bash
+git push origin nombre_de_tu_rama
+```
+
+### 5. Crear un Pull Request (PR)
+Desde GitHub creá un pull request.
+
+Podes seguir la sig. guía: [Como crear un pull request | GitHub](https://docs.github.com/es/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request#creating-the-pull-request)
+
+
 ## TODO
 
-* Probar y mejorar manejador de scripts SQL.
-  * Agregar ejemplo funcional
-* Agregar modulo de configuración de emails.
+- [ ] Actualizar documentacion de nuevos modulos en este README
+
+- [ ] Probar y mejorar manejador de scripts SQL.
+    - [ ] Agregar ejemplo funcional
+- [ ] Agregar modulo de configuración de emails.
 
 <!-- ### Configuración de Correos
 
