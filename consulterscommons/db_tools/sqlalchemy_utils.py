@@ -113,20 +113,16 @@ def get_columns_to_add(df: pd.DataFrame, engine: sqlalchemy.engine.base.Engine, 
     metadata.reflect(engine)
     table_name_with_schema = f'{schema}.{table_name}'
 
-    # Obtiene información de la tabla utilizando Inspector
-    inspector = inspect(engine)
-
     if check_if_table_exists(engine, table_name, schema) is False:
         logger.warning("No se encontró la tabla '%s' en la base de datos. No se pueden agregar columnas.", table_name_with_schema)
         return {}
 
-    existing_columns = inspector.get_columns(table_name, schema=schema)
-    existing_column_names = [col['name'] for col in existing_columns]
+    existing_columns_info = get_column_types(engine, table_name, schema)
 
     # Determina las columnas a agregar basándose en las columnas del DataFrame
     columns_to_add = {}
     for column in df.columns:
-        if column not in existing_column_names:
+        if column not in existing_columns_info:
             # Determina el tipo de columna basándose en los tipos de datos del DataFrame
             if pd.api.types.is_integer_dtype(df[column]):
                 column_type = 'INTEGER'
@@ -138,8 +134,72 @@ def get_columns_to_add(df: pd.DataFrame, engine: sqlalchemy.engine.base.Engine, 
                 column_type = 'NVARCHAR(MAX)'  # Por defecto, se asume tipo String
 
             columns_to_add[column] = column_type
+        else:
+            # Verifica si el tipo de columna existente coincide con el tipo de columna del DataFrame
+            if pd.api.types.is_integer_dtype(df[column]) and str(existing_columns_info[column]) not in ['INTEGER', 'BIGINT']:
+                logger.warning(f"La columna {column} existe pero el tipo no coincide: se esperaba {existing_columns_info[column]}, se encontró INTEGER o BIGINT")
+            elif pd.api.types.is_float_dtype(df[column]) and str(existing_columns_info[column]) != 'FLOAT':
+                logger.warning(f"La columna {column} existe pero el tipo no coincide: se esperaba {existing_columns_info[column]}, se encontró FLOAT")
+            elif pd.api.types.is_datetime64_any_dtype(df[column]) and str(existing_columns_info[column]) != 'DATETIME':
+                logger.warning(f"La columna {column} existe pero el tipo no coincide: se esperaba {existing_columns_info[column]}, se encontró DATETIME")
+            elif not pd.api.types.is_integer_dtype(df[column]) and not pd.api.types.is_float_dtype(df[column]) and not pd.api.types.is_datetime64_any_dtype(df[column]) and 'varchar' not in str(existing_columns_info[column]).lower():
+                logger.warning(f"La columna {column} existe pero el tipo no coincide: se esperaba {existing_columns_info[column]}, se encontró NVARCHAR(MAX)")
 
     return columns_to_add
+
+
+def get_column_types(engine: sqlalchemy.engine.base.Engine, table_name: str, schema: str) -> dict:
+    """
+    Obtiene los tipos de datos de las columnas de una tabla en la base de datos.
+
+    Args:
+        engine (sqlalchemy.engine.base.Engine): El motor SQLAlchemy para la conexión a la base de datos.
+        table_name (str): El nombre de la tabla.
+        schema (str): El nombre del esquema de la tabla.
+
+    Returns:
+        dict: Un diccionario que contiene los nombres de las columnas como claves y sus tipos de datos como valores.
+    """
+    inspector = inspect(engine)
+    columns = inspector.get_columns(table_name, schema=schema)
+    column_types = {col['name']: col['type'] for col in columns}
+    return column_types
+
+
+def convert_dataframe_column_types(df: pd.DataFrame, column_types: dict) -> pd.DataFrame:
+    """
+    Convierte los tipos de datos de las columnas del DataFrame para que coincidan con los tipos de datos de las columnas de la tabla SQL.
+
+    Args:
+        df (pandas.DataFrame): El DataFrame con los datos.
+        column_types (dict): Un diccionario con los nombres de las columnas y sus tipos de datos en la tabla SQL.
+
+    Returns:
+        pandas.DataFrame: El DataFrame con los tipos de datos de las columnas convertidos.
+    """
+    logger = logger_global.obtener_logger_prefect()
+
+    for column, dtype in column_types.items():
+        if column in df.columns:
+            # current_dtype = df[column].dtype
+            if isinstance(dtype, sqlalchemy.types.Integer) or isinstance(dtype, sqlalchemy.types.BigInteger):
+                # if not pd.api.types.is_integer_dtype(current_dtype):
+                logger.info("Convirtiendo columna '%s' a tipo Integer", column)
+                df[column] = pd.to_numeric(df[column], errors='coerce').astype('Int64')
+            elif isinstance(dtype, sqlalchemy.types.Float):
+                # if not pd.api.types.is_float_dtype(current_dtype):
+                logger.info("Convirtiendo columna '%s' a tipo Float", column)
+                df[column] = pd.to_numeric(df[column], errors='coerce').astype('float')
+            elif isinstance(dtype, sqlalchemy.types.DateTime):
+                # if not pd.api.types.is_datetime64_any_dtype(current_dtype):
+                logger.info("Convirtiendo columna '%s' a tipo DateTime", column)
+                df[column] = pd.to_datetime(df[column], errors='coerce')
+            elif isinstance(dtype, sqlalchemy.types.String):
+                # if not pd.api.types.is_string_dtype(current_dtype):
+                logger.info("Convirtiendo columna '%s' a tipo String", column)
+                df[column] = df[column].astype(str)
+                df[column] = df[column].replace('nan', pd.NA)
+    return df
 
 
 @task
@@ -191,6 +251,8 @@ def get_only_new_rows(df_new: pd.DataFrame, engine: sqlalchemy.engine.base.Engin
     DataFrame que contiene solo las filas nuevas encontradas en df_new en comparación con los datos actuales en la tabla del Data Warehouse.
     """
 
+    logger = logger_global.obtener_logger_prefect()
+
     # Validaciónes de tipos de datos
     if not isinstance(df_new, pd.DataFrame):
         raise TypeError("df_new debe ser un DataFrame de pandas.")
@@ -223,6 +285,7 @@ def get_only_new_rows(df_new: pd.DataFrame, engine: sqlalchemy.engine.base.Engin
     FROM {table_schema}.{table_name}
     """
     df_existing = pd.read_sql_query(query, engine)
+    # df_new = df_new[columns_to_compare]
 
     # Paso 2: Comparar los datos de df_new con los datos actuales en el DW
     df_merge = pd.merge(df_new, df_existing, on=columns_to_compare, how='left', indicator=True)
