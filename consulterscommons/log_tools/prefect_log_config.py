@@ -117,36 +117,37 @@ class PrefectLogger(object):
         root_logger = logging.getLogger()
         prefect_logger = prefect_logging.get_run_logger()
 
-        # En caso que se ejecute desde la UI o API por un deployment tiene otro logger de prefect por lo que saldran duplicados
-        # Para solucionarlo solo configuramos el logger prefect si se ejecuta de manera manual.
-        if runtime.deployment.name is None:
-            # Check si el handler ya esta presente en prefect_logger.logger.handlers
-            prefect_rotfile_handler_present = any(isinstance(
-                h, type(self.handler)) for h in prefect_logger.logger.handlers)
+        # Check si el handler ya esta presente en prefect_logger.logger.handlers
+        prefect_rotfile_handler_present = any(isinstance(
+            h, type(self.handler)) for h in prefect_logger.logger.handlers)
 
-            if prefect_rotfile_handler_present:
-                # Reemplazar handler existente por el nuevo self.handler
-                for i, h in enumerate(prefect_logger.logger.handlers):
-                    if isinstance(h, type(self.handler)):
-                        prefect_logger.logger.handlers[i] = self.handler
-                        break
-            else:
-                # Añadir handler si no esta
-                prefect_logger.logger.addHandler(self.handler)
-
-        # Check si el handler ya esta presente en root_logger.handlers
-        root_rotfile_handler_present = any(isinstance(
-            h, type(self.handler)) for h in root_logger.handlers)
-
-        if root_rotfile_handler_present:
+        if prefect_rotfile_handler_present:
             # Reemplazar handler existente por el nuevo self.handler
-            for i, h in enumerate(root_logger.handlers):
+            for i, h in enumerate(prefect_logger.logger.handlers):
                 if isinstance(h, type(self.handler)):
-                    root_logger.handlers[i] = self.handler
+                    prefect_logger.logger.handlers[i] = self.handler
                     break
         else:
             # Añadir handler si no esta
-            root_logger.addHandler(self.handler)
+            prefect_logger.logger.addHandler(self.handler)
+
+        # En caso que se ejecute desde la UI o API por un deployment tiene otro logger de prefect por lo que saldran duplicados
+        # Para solucionarlo solo configuramos el logger prefect si se ejecuta de manera manual.
+        # if runtime.deployment.name is None:
+        if runtime.deployment.name is None:
+            # Check si el handler ya esta presente en root_logger.handlers
+            root_rotfile_handler_present = any(isinstance(
+                h, type(self.handler)) for h in root_logger.handlers)
+
+            if root_rotfile_handler_present:
+                # Reemplazar handler existente por el nuevo self.handler
+                for i, h in enumerate(root_logger.handlers):
+                    if isinstance(h, type(self.handler)):
+                        root_logger.handlers[i] = self.handler
+                        break
+            else:
+                # Añadir handler si no esta
+                root_logger.addHandler(self.handler)
 
         return prefect_logger
 
