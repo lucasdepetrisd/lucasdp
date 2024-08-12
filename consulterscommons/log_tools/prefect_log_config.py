@@ -185,16 +185,18 @@ class PrefectLogger(object):
         Retorna:
             prefect_logger: Instancia actualizada del logger de Prefect.
         """
-        if not os.path.exists(log_path):
-            if self._logger_prefect:
-                self._logger_prefect.warning("""Error al cambiar el directorio de salida. No se reconoce el directorio %s.
-                                              Se utilizara el predeterminado: %s""", log_path, self.DEFAULT_LOG_PATH)
+
+        if log_path not in (self.DEFAULT_LOG_PATH, '', None):
+            if not os.path.exists(log_path):
+                if self._logger_prefect:
+                    self._logger_prefect.warning("""Error al cambiar el directorio de salida. No se reconoce el directorio %s.
+                                                Se utilizara el predeterminado: %s""", log_path, self.DEFAULT_LOG_PATH)
+                else:
+                    print(f"""Error al cambiar el directorio de salida. No se reconoce el directorio {log_path}.
+                        Se utilizara el predeterminado: {self.DEFAULT_LOG_PATH}""")
+                self._log_path = self.DEFAULT_LOG_PATH
             else:
-                print(f"""Error al cambiar el directorio de salida. No se reconoce el directorio {log_path}.
-                      Se utilizara el predeterminado: {self.DEFAULT_LOG_PATH}""")
-            self._log_path = self.DEFAULT_LOG_PATH
-        else:
-            self._log_path = log_path
+                self._log_path = log_path
 
         self._when = when or self.DEFAULT_WHEN
         self._interval = interval or self.DEFAULT_INTERVAL
