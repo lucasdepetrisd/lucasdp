@@ -70,7 +70,7 @@ Desde GitHub creá un pull request.
 Podes seguir la sig. guía: [Como crear un pull request | GitHub](https://docs.github.com/es/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request#creating-the-pull-request)
 
 ### 6. Incorporación de cambios
-Luego de que un admin del repositorio acepte el PR este usuario deberá cambiar la versión del archivo consulterscommons/__init__.py
+Luego de que un admin del repositorio acepte el PR este usuario deberá cambiar la versión del archivo consulterscommons/\_\_init\_\_.py
 Al cambiar la versión y hacer un commit en la rama principal se considerará como una nueva versión del repositorio y podra ser instalada utilizando el comando:
 
 ```bash
