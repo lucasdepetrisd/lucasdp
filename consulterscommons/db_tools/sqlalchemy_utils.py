@@ -236,9 +236,10 @@ def add_columns_to_table(columns_to_add: dict, engine: sqlalchemy.engine.base.En
 
 
 @task
-def get_only_new_rows(df_new: pd.DataFrame, engine: sqlalchemy.engine.base.Engine, table_name: str, table_schema: str, columns_to_compare: list[str]):
+def get_only_new_rows(df_new: pd.DataFrame, engine: sqlalchemy.engine.base.Engine, table_name: str, table_schema: str, columns_to_compare: list[str], linea_column: str = 'LINEA', timestamp_column: str = 'TIMESTAMP_LECTURA') -> pd.DataFrame:
     """
     Compara los datos de un DataFrame con los datos actuales en una tabla en el Data Warehouse y devuelve solo las filas nuevas.
+    Utiliza las columnas LINEA y TIMESTAMP_LECTURA para determinar la ultima version de cada fila y solo traer esa.
 
     Args:
     - engine: Objeto SQLAlchemy Engine que representa la conexión a la base de datos.
@@ -277,13 +278,27 @@ def get_only_new_rows(df_new: pd.DataFrame, engine: sqlalchemy.engine.base.Engin
     if not all(col in columns_df_new for col in columns_to_compare):
         raise ValueError("Las columnas a comparar deben estar presentes en el DataFrame df_new.")
 
-    columns_str = ', '.join(columns_to_compare)
+    columns_str = ', '.join([f't.[{col}]' for col in columns_to_compare])
 
     # Paso 1: Obtener los datos actuales de la tabla en el DW
     query = f"""
-    SELECT {columns_str}
-    FROM {table_schema}.{table_name}
+    SELECT
+        {columns_str}
+    FROM
+        [{table_schema}].[{table_name}] AS t
+    INNER JOIN (
+        SELECT
+            {linea_column},
+            MAX({timestamp_column}) AS LAST_TIMESTAMP_LECTURA
+        FROM
+            [{table_schema}].[{table_name}]
+        GROUP BY
+            {linea_column}
+    ) AS sub ON t.{linea_column} = sub.{linea_column} AND t.{timestamp_column} = sub.LAST_TIMESTAMP_LECTURA
+    ORDER BY
+        t.{linea_column};
     """
+
     df_existing = pd.read_sql_query(query, engine)
     # df_new = df_new[columns_to_compare]
 
