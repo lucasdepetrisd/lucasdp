@@ -236,10 +236,10 @@ def add_columns_to_table(columns_to_add: dict, engine: sqlalchemy.engine.base.En
 
 
 @task
-def get_only_new_rows(df_new: pd.DataFrame, engine: sqlalchemy.engine.base.Engine, table_name: str, table_schema: str, columns_to_compare: list[str], linea_column: str = 'LINEA', timestamp_column: str = 'TIMESTAMP_LECTURA') -> pd.DataFrame:
+def get_only_new_rows(df_new: pd.DataFrame, engine: sqlalchemy.engine.base.Engine, table_name: str, table_schema: str, columns_to_compare: list[str], key_columns: list[str] = ['LINEA'], timestamp_column: str = 'TIMESTAMP_LECTURA') -> pd.DataFrame:
     """
     Compara los datos de un DataFrame con los datos actuales en una tabla en el Data Warehouse y devuelve solo las filas nuevas.
-    Utiliza las columnas LINEA y TIMESTAMP_LECTURA para determinar la ultima version de cada fila y solo traer esa.
+    Utiliza las columnas clave para determinar la última versión de cada fila y solo traer esa.
 
     Args:
     - engine: Objeto SQLAlchemy Engine que representa la conexión a la base de datos.
@@ -247,6 +247,8 @@ def get_only_new_rows(df_new: pd.DataFrame, engine: sqlalchemy.engine.base.Engin
     - table_name: Nombre de la tabla en el Data Warehouse.
     - table_schema: Esquema de la tabla en el Data Warehouse.
     - columns_to_compare: Lista de columnas a utilizar para la comparación.
+    - key_columns: Lista de columnas clave que identifican las filas de forma única.
+    - timestamp_column: Nombre de la columna que contiene la fecha de lectura de los datos.
 
     Returns:
     DataFrame que contiene solo las filas nuevas encontradas en df_new en comparación con los datos actuales en la tabla del Data Warehouse.
@@ -272,13 +274,23 @@ def get_only_new_rows(df_new: pd.DataFrame, engine: sqlalchemy.engine.base.Engin
             columns_to_compare = columns_to_compare.tolist()
         else:
             raise TypeError("columns_to_compare debe ser una lista de strings.")
+    
+    if not isinstance(key_columns, list):
+        if isinstance(key_columns, pd.Index):
+            key_columns = key_columns.tolist()
+        else:
+            raise TypeError("key_columns debe ser una lista de strings.")
 
     columns_df_new = df_new.columns.tolist()
 
     if not all(col in columns_df_new for col in columns_to_compare):
         raise ValueError("Las columnas a comparar deben estar presentes en el DataFrame df_new.")
+    
+    # if not all(col in columns_df_new for col in key_columns):
+    #     raise ValueError("Las columnas clave deben estar presentes en el DataFrame df_new.")
 
     columns_str = ', '.join([f't.[{col}]' for col in columns_to_compare])
+    key_columns_str = ', '.join(key_columns)
 
     # Paso 1: Obtener los datos actuales de la tabla en el DW
     query = f"""
@@ -288,15 +300,15 @@ def get_only_new_rows(df_new: pd.DataFrame, engine: sqlalchemy.engine.base.Engin
         [{table_schema}].[{table_name}] AS t
     INNER JOIN (
         SELECT
-            {linea_column},
+            {key_columns_str},
             MAX({timestamp_column}) AS LAST_TIMESTAMP_LECTURA
         FROM
             [{table_schema}].[{table_name}]
         GROUP BY
-            {linea_column}
-    ) AS sub ON t.{linea_column} = sub.{linea_column} AND t.{timestamp_column} = sub.LAST_TIMESTAMP_LECTURA
+            {key_columns_str}
+    ) AS sub ON {" AND ".join([f"t.{col} = sub.{col}" for col in key_columns])} AND t.{timestamp_column} = sub.LAST_TIMESTAMP_LECTURA
     ORDER BY
-        t.{linea_column};
+        t.{key_columns_str};
     """
 
     df_existing = pd.read_sql_query(query, engine)
