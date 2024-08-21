@@ -236,7 +236,7 @@ def add_columns_to_table(columns_to_add: dict, engine: sqlalchemy.engine.base.En
 
 
 @task
-def get_only_new_rows(df_new: pd.DataFrame, engine: sqlalchemy.engine.base.Engine, table_name: str, table_schema: str, columns_to_compare: list[str], key_columns: list[str] = ['LINEA'], timestamp_column: str = 'TIMESTAMP_LECTURA') -> pd.DataFrame:
+def get_only_new_rows(df_new: pd.DataFrame, engine: sqlalchemy.engine.base.Engine, table_name: str, table_schema: str, columns_to_compare: list[str], key_columns: list[str], timestamp_column: str = 'TIMESTAMP_LECTURA') -> pd.DataFrame:
     """
     Compara los datos de un DataFrame con los datos actuales en una tabla en el Data Warehouse y devuelve solo las filas nuevas.
     Utiliza las columnas clave para determinar la última versión de cada fila y solo traer esa.
@@ -248,7 +248,7 @@ def get_only_new_rows(df_new: pd.DataFrame, engine: sqlalchemy.engine.base.Engin
     - table_schema: Esquema de la tabla en el Data Warehouse.
     - columns_to_compare: Lista de columnas a utilizar para la comparación.
     - key_columns: Lista de columnas clave que identifican las filas de forma única.
-    - timestamp_column: Nombre de la columna que contiene la fecha de lectura de los datos.
+    - timestamp_column: Nombre de la columna que contiene la fecha de lectura de los datos. Por defecto es 'TIMESTAMP_LECTURA'.
 
     Returns:
     DataFrame que contiene solo las filas nuevas encontradas en df_new en comparación con los datos actuales en la tabla del Data Warehouse.
@@ -289,8 +289,10 @@ def get_only_new_rows(df_new: pd.DataFrame, engine: sqlalchemy.engine.base.Engin
     # if not all(col in columns_df_new for col in key_columns):
     #     raise ValueError("Las columnas clave deben estar presentes en el DataFrame df_new.")
 
+    # Construir las cadenas de columnas para la consulta SQL
     columns_str = ', '.join([f't.[{col}]' for col in columns_to_compare])
     key_columns_str = ', '.join(key_columns)
+    prefix_key_columns_str = ', '.join([f'sub.[{col}]' for col in key_columns]) # Prefijo para columnas claves cuando se llama desde el SELECT exterior
 
     # Paso 1: Obtener los datos actuales de la tabla en el DW
     query = f"""
@@ -308,7 +310,7 @@ def get_only_new_rows(df_new: pd.DataFrame, engine: sqlalchemy.engine.base.Engin
             {key_columns_str}
     ) AS sub ON {" AND ".join([f"t.{col} = sub.{col}" for col in key_columns])} AND t.{timestamp_column} = sub.LAST_TIMESTAMP_LECTURA
     ORDER BY
-        t.{key_columns_str};
+        {prefix_key_columns_str}
     """
 
     df_existing = pd.read_sql_query(query, engine)
