@@ -64,8 +64,8 @@ class PrefectLogger(object):
     """
 
     DEFAULT_LOG_PATH = ""
-    DEFAULT_WHEN = 'W0'  # Rota el archivo semanalmente los lunes.
-    DEFAULT_INTERVAL = 1
+    DEFAULT_WHEN = 'D'
+    DEFAULT_INTERVAL = 30
     DEFAULT_BACKUP_COUNT = 12
     DEFAULT_FORMATTER = PrefectFormatter(
         format="%(asctime)s | %(levelname)-7s | %(name)s - %(message)s",
