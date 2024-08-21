@@ -25,11 +25,25 @@ from prefect.logging.formatters import PrefectFormatter
 from consulterscommons.log_tools.parallel_log_rotator import ParallelTimedRotatingFileHandler
 
 class RemoveSpecificLogs(logging.Filter):
+    """
+    NO ES PARA USO DIRECTO EN EL CÓDIGO.
+    Este filtro está diseñado para ser utilizado por Prefect en su archivo de configuración de loggers YAML.
+
+
+    Filtro personalizado para excluir registros específicos en los registros de registro.
+    Este filtro se utiliza para excluir registros que contienen ciertas cadenas en el mensaje.
+    Se proporciona una lista de cadenas a excluir y el filtro devolverá False si alguno de los registros tiene una de esas cadenas en el mensaje.
+
+    Atributos:
+        - strings_to_exclude (list): Lista de cadenas a excluir en los registros.
+    Métodos:
+        - filter(record): Método para filtrar los registros de registro.
+    """
     def filter(self, record):
         # Agrega otras cadenas que deseas filtrar
         # strings_to_exclude = ['Created task run', 'Created flow run', 'Executing', 'Finished in state Completed']
         strings_to_exclude = ['Created task run',
-                              'Created flow run', 'Executing']
+                            'Created flow run', 'Executing']
 
         # Devuelve False si alguno de los records tiene el string en el mensaje
         return not any(exclude_str in record.msg for exclude_str in strings_to_exclude)
@@ -39,27 +53,34 @@ class PrefectLogger(object):
     """
     Clase para manejar el registro de logs para Prefect.
 
+    Parámetros:
+    - script_path (str): Ruta del script que llama a la clase.
+    - log_path (str): Ruta personalizada para los logs.
+    - when (str): Tipo de intervalo para la rotación del archivo.
+    - interval (int): Intervalo entre rotaciones en semanas.
+    - backup_count (int): Número de archivos de log de respaldo a retener.
+    - encoding (str): Codificación de caracteres para el archivo de log.
+
     Atributos:
-        DEFAULT_LOG_PATH (str): Ruta predeterminada para los logs.
-        DEFAULT_WHEN (str): Tipo de intervalo para la rotación del archivo (por defecto, 'W0' para semanal).
-        DEFAULT_INTERVAL (int): Intervalo entre rotaciones en semanas.
-        DEFAULT_BACKUP_COUNT (int): Número de archivos de log de respaldo a retener.
+    - DEFAULT_LOG_PATH (str): Ruta predeterminada para los logs.
+    - DEFAULT_WHEN (str): Tipo de intervalo para la rotación del archivo (por defecto, 'W0' para semanal).
+    - DEFAULT_INTERVAL (int): Intervalo entre rotaciones en semanas.
+    - DEFAULT_BACKUP_COUNT (int): Número de archivos de log de respaldo a retener.
+    - DEFAULT_FORMATTER (PrefectFormatter): Formateador predeterminado para los mensajes de log.
 
-    Métodos:
-        __init__(self, scriptname, log_path: str = None):
-            Inicializa la instancia de PrefectLogger.
-
-        _initialize_logger(self):
-            Inicializa el logger con los parámetros configurados.
-
-        obtener_logger_prefect(self):
-            Obtiene el logger de Prefect.
-
-        cambiar_rotfile_handler_params(self, log_path: str = None, 
-                                        when: str = DEFAULT_WHEN, 
-                                        interval: int = DEFAULT_INTERVAL, 
-                                        backup_count: int = DEFAULT_BACKUP_COUNT):
-            Cambia los parámetros del manejador de archivos rotativos.
+    Métodos
+    
+    - __init__(self, scriptname, log_path: str = None):
+        - Inicializa la instancia de PrefectLogger.
+    
+    - _initialize_logger(self):
+        - Inicializa el logger con los parámetros configurados.
+    
+    - obtener_logger_prefect(self):
+        - Obtiene el logger de Prefect.
+    
+    - cambiar_rotfile_handler_params(self, log_path: str = None, when: str = DEFAULT_WHEN, interval: int = DEFAULT_INTERVAL, backup_count: int = DEFAULT_BACKUP_COUNT):
+        - Cambia los parámetros del manejador de archivos rotativos.
 
     """
 
@@ -73,8 +94,16 @@ class PrefectLogger(object):
         flow_run_fmt="%(asctime)s | %(levelname)-7s | Flow %(flow_name)r - %(message)s",
         task_run_fmt="%(asctime)s | %(levelname)-7s | Task %(task_name)r - %(message)s"
     )
+    DEFAULT_ENCODING = 'utf-8'
 
-    def __init__(self, script_path: str, log_path: str = None):
+    def __init__(self, script_path: str,
+                log_path: str = None,
+                when: str = DEFAULT_WHEN,
+                interval: int = DEFAULT_INTERVAL,
+                backup_count: int = DEFAULT_BACKUP_COUNT,
+                encoding: str = DEFAULT_ENCODING
+                ):
+
         self.script_path = script_path
         self.script_dir = os.path.dirname(self.script_path)
         self.script_name = os.path.splitext(os.path.basename(script_path))[0]
@@ -82,9 +111,11 @@ class PrefectLogger(object):
             self.script_dir, 'logs', self.script_name)
         self._log_path = log_path or self.DEFAULT_LOG_PATH
 
-        self._when = self.DEFAULT_WHEN
-        self._interval = self.DEFAULT_INTERVAL
-        self._backup_count = self.DEFAULT_BACKUP_COUNT
+        self._when = when or self.DEFAULT_WHEN
+        self._interval = interval or self.DEFAULT_INTERVAL
+        self._backup_count = backup_count or self.DEFAULT_BACKUP_COUNT
+        self._encoding = encoding or self.DEFAULT_ENCODING
+
         self.handler = None
         self._logger_prefect = None
         self._run_name = ""
@@ -109,7 +140,8 @@ class PrefectLogger(object):
             filename=self._log_path,
             when=self._when,
             interval=self._interval,
-            backupCount=self._backup_count
+            backupCount=self._backup_count,
+            encoding=self._encoding
         )
 
         self.handler.setFormatter(self.DEFAULT_FORMATTER)
@@ -170,9 +202,10 @@ class PrefectLogger(object):
         return self._logger_prefect
 
     def cambiar_rotfile_handler_params(self, log_path: str = DEFAULT_LOG_PATH,
-                                       when: str = DEFAULT_WHEN,
-                                       interval: int = DEFAULT_INTERVAL,
-                                       backup_count: int = DEFAULT_BACKUP_COUNT):
+                                    when: str = DEFAULT_WHEN,
+                                    interval: int = DEFAULT_INTERVAL,
+                                    backup_count: int = DEFAULT_BACKUP_COUNT,
+                                    encoding: str = DEFAULT_ENCODING):
         """
         Cambia los parámetros del manejador de archivos rotativos.
 
@@ -181,6 +214,7 @@ class PrefectLogger(object):
             when (str): Tipo de intervalo para la rotación del archivo.
             interval (int): Intervalo entre rotaciones en semanas.
             backup_count (int): Número de archivos de log de respaldo a retener.
+            encoding (str): Codificación de caracteres para el archivo de log.
 
         Retorna:
             prefect_logger: Instancia actualizada del logger de Prefect.
@@ -201,6 +235,7 @@ class PrefectLogger(object):
         self._when = when or self.DEFAULT_WHEN
         self._interval = interval or self.DEFAULT_INTERVAL
         self._backup_count = backup_count or self.DEFAULT_BACKUP_COUNT
+        self._encoding = encoding or self.DEFAULT_ENCODING
 
         # Reinicializar el logger con los nuevos parámetros
         self._logger_prefect = self._initialize_logger()
