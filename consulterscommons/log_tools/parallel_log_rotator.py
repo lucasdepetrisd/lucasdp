@@ -53,7 +53,7 @@ class ParallelTimedRotatingFileHandler(logging.handlers.TimedRotatingFileHandler
             if len(self.when) != 2:
                 raise ValueError("You must specify a day for weekly rollover from 0 to 6 (0 is Monday): %s" % self.when)
             if self.when[1] < '0' or self.when[1] > '6':
-                 raise ValueError("Invalid day specified for weekly rollover: %s" % self.when)
+                raise ValueError("Invalid day specified for weekly rollover: %s" % self.when)
             self.dayOfWeek = int(self.when[1])
             self.suffix = "%Y-%m-%d"
             self.extMatch = r"^\d{4}-\d{2}-\d{2}$"
@@ -70,9 +70,9 @@ class ParallelTimedRotatingFileHandler(logging.handlers.TimedRotatingFileHandler
 
     def calculateFileName(self, currenttime):
         if self.utc:
-             timeTuple = time.gmtime(currenttime)
+            timeTuple = time.gmtime(currenttime)
         else:
-             timeTuple = time.localtime(currenttime)
+            timeTuple = time.localtime(currenttime)
 
         return self.origFileName + "." + time.strftime(self.suffix, timeTuple) + self.postfix
 
@@ -88,9 +88,9 @@ class ParallelTimedRotatingFileHandler(logging.handlers.TimedRotatingFileHandler
         postlen = len(postfix)
         for fileName in fileNames:
             if fileName[:prelen] == prefix and fileName[-postlen:] == postfix and len(fileName)-postlen > prelen and fileName != newFileName:
-                 suffix = fileName[prelen:len(fileName)-postlen]
-                 if self.extMatch.match(suffix):
-                     result.append(os.path.join(dirName, fileName))
+                suffix = fileName[prelen:len(fileName)-postlen]
+                if self.extMatch.match(suffix):
+                    result.append(os.path.join(dirName, fileName))
         result.sort()
         if len(result) < self.backupCount:
             result = []
