@@ -29,7 +29,6 @@ class RemoveSpecificLogs(logging.Filter):
     NO ES PARA USO DIRECTO EN EL CÓDIGO.
     Este filtro está diseñado para ser utilizado por Prefect en su archivo de configuración de loggers YAML.
 
-
     Filtro personalizado para excluir registros específicos en los registros de registro.
     Este filtro se utiliza para excluir registros que contienen ciertas cadenas en el mensaje.
     Se proporciona una lista de cadenas a excluir y el filtro devolverá False si alguno de los registros tiene una de esas cadenas en el mensaje.
