@@ -10,6 +10,7 @@ import sqlalchemy
 from sqlalchemy import create_engine, inspect, text
 from sqlalchemy import MetaData
 import pandas as pd
+import numpy as np
 from prefect import task
 
 from consulterscommons.log_tools import PrefectLogger
@@ -179,8 +180,10 @@ def convert_dataframe_column_types(df: pd.DataFrame, column_types: dict) -> pd.D
     """
     logger = logger_global.obtener_logger_prefect()
 
+    lista_columnas = df.columns.tolist()
+
     for column, dtype in column_types.items():
-        if column in df.columns:
+        if column in lista_columnas:
             # current_dtype = df[column].dtype
             if isinstance(dtype, sqlalchemy.types.Integer) or isinstance(dtype, sqlalchemy.types.BigInteger):
                 # if not pd.api.types.is_integer_dtype(current_dtype):
@@ -197,8 +200,9 @@ def convert_dataframe_column_types(df: pd.DataFrame, column_types: dict) -> pd.D
             elif isinstance(dtype, sqlalchemy.types.String):
                 # if not pd.api.types.is_string_dtype(current_dtype):
                 logger.info("Convirtiendo columna '%s' a tipo String", column)
-                df[column] = df[column].astype(str)
-                df[column] = df[column].replace('nan', pd.NA)
+                df[column] = df[column].astype(str).replace(['nan', 'NaN', 'None', 'none', 'NULL', 'null'], None)
+
+    logger.info("Tipos de datos convertidos exitosamente.")
     return df
 
 
@@ -274,7 +278,7 @@ def get_only_new_rows(df_new: pd.DataFrame, engine: sqlalchemy.engine.base.Engin
             columns_to_compare = columns_to_compare.tolist()
         else:
             raise TypeError("columns_to_compare debe ser una lista de strings.")
-    
+
     if not isinstance(key_columns, list):
         if isinstance(key_columns, pd.Index):
             key_columns = key_columns.tolist()
@@ -285,7 +289,7 @@ def get_only_new_rows(df_new: pd.DataFrame, engine: sqlalchemy.engine.base.Engin
 
     if not all(col in columns_df_new for col in columns_to_compare):
         raise ValueError("Las columnas a comparar deben estar presentes en el DataFrame df_new.")
-    
+
     # if not all(col in columns_df_new for col in key_columns):
     #     raise ValueError("Las columnas clave deben estar presentes en el DataFrame df_new.")
 
@@ -314,7 +318,16 @@ def get_only_new_rows(df_new: pd.DataFrame, engine: sqlalchemy.engine.base.Engin
     """
 
     df_existing = pd.read_sql_query(query, engine)
-    # df_new = df_new[columns_to_compare]
+
+    if df_existing.empty:
+        logger.info("No se encontraron datos en la tabla '%s.%s'. Se insertarán todos los datos nuevos.", table_schema, table_name)
+        return df_new
+
+    pd.set_option("future.no_silent_downcasting", True) # Para evitar warnings de pandas
+
+    # En Pandas los valores None no pueden ser comparados, por lo que se reemplazan por NaN
+    df_existing = df_existing.replace({None: np.nan})
+    df_new = df_new.replace({None: np.nan})
 
     # Paso 2: Comparar los datos de df_new con los datos actuales en el DW
     df_merge = pd.merge(df_new, df_existing, on=columns_to_compare, how='left', indicator=True)
