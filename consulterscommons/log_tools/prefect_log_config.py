@@ -11,8 +11,7 @@ Chequear la documentación del repositorio prefect-test para más información.
 
 Funciones:
     - obtener_nombre_script: Devuelve el nombre del script que realiza la llamada.
-    - inicializar_logger_prefect: Inicializa el registro para Prefect, incluyendo
-                                  la configuración de manejadores de archivos y formateadores.
+    - inicializar_logger_prefect: Inicializa el registro para Prefect, incluyendo la configuración de manejadores de archivos y formateadores.
 """
 
 import os
@@ -22,7 +21,7 @@ from prefect import runtime
 from prefect import logging as prefect_logging
 from prefect.logging.formatters import PrefectFormatter
 
-from consulterscommons.log_tools.parallel_log_rotator import ParallelTimedRotatingFileHandler
+# from consulterscommons.log_tools.parallel_log_rotator import ParallelTimedRotatingFileHandler
 
 class RemoveSpecificLogs(logging.Filter):
     """
@@ -107,7 +106,7 @@ class PrefectLogger(object):
         self.script_dir = os.path.dirname(self.script_path)
         self.script_name = os.path.splitext(os.path.basename(script_path))[0]
         self.DEFAULT_LOG_PATH = os.path.join(
-            self.script_dir, 'logs', self.script_name)
+            self.script_dir, 'logs', (self.script_name + '.log'))
         self._log_path = log_path or self.DEFAULT_LOG_PATH
 
         self._when = when or self.DEFAULT_WHEN
@@ -135,13 +134,15 @@ class PrefectLogger(object):
                 "No se encontro el directorio. Creandolo en la carpeta del script: %s", path_relativo)
             os.mkdir(os.path.dirname(self._log_path))
 
-        self.handler = ParallelTimedRotatingFileHandler(
+        self.handler = logging.handlers.TimedRotatingFileHandler(
             filename=self._log_path,
             when=self._when,
             interval=self._interval,
             backupCount=self._backup_count,
-            encoding=self._encoding
+            encoding=self._encoding,
         )
+
+        self.handler.namer = lambda name: name.replace(".log", "") + ".log"
 
         self.handler.setFormatter(self.DEFAULT_FORMATTER)
 
