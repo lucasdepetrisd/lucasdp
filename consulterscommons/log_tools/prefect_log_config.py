@@ -23,30 +23,6 @@ from prefect.logging.formatters import PrefectFormatter
 
 # from consulterscommons.log_tools.parallel_log_rotator import ParallelTimedRotatingFileHandler
 
-class RemoveSpecificLogs(logging.Filter):
-    """
-    NO ES PARA USO DIRECTO EN EL CÓDIGO.
-    Este filtro está diseñado para ser utilizado por Prefect en su archivo de configuración de loggers YAML.
-
-    Filtro personalizado para excluir registros específicos en los registros de registro.
-    Este filtro se utiliza para excluir registros que contienen ciertas cadenas en el mensaje.
-    Se proporciona una lista de cadenas a excluir y el filtro devolverá False si alguno de los registros tiene una de esas cadenas en el mensaje.
-
-    Atributos:
-        - strings_to_exclude (list): Lista de cadenas a excluir en los registros.
-    Métodos:
-        - filter(record): Método para filtrar los registros de registro.
-    """
-    def filter(self, record):
-        # Agrega otras cadenas que deseas filtrar
-        # strings_to_exclude = ['Created task run', 'Created flow run', 'Executing', 'Finished in state Completed']
-        strings_to_exclude = ['Created task run',
-                            'Created flow run', 'Executing']
-
-        # Devuelve False si alguno de los records tiene el string en el mensaje
-        return not any(exclude_str in record.msg for exclude_str in strings_to_exclude)
-
-
 class PrefectLogger(object):
     """
     Clase para manejar el registro de logs para Prefect.
@@ -246,3 +222,48 @@ class PrefectLogger(object):
 def obtener_path_script(file_path):
     file_path = os.path.abspath(file_path)
     return file_path
+
+
+class RemoveSpecificLogs(logging.Filter):
+    """
+    NO ES PARA USO DIRECTO EN EL CÓDIGO.
+    Este filtro está diseñado para ser utilizado por Prefect en su archivo de configuración de loggers YAML.
+
+    Filtro personalizado para excluir registros específicos en los registros de registro.
+    Este filtro se utiliza para excluir registros que contienen ciertas cadenas en el mensaje.
+    Se proporciona una lista de cadenas a excluir y el filtro devolverá False si alguno de los registros tiene una de esas cadenas en el mensaje.
+
+    Atributos:
+        - strings_to_exclude (list): Lista de cadenas a excluir en los registros.
+    Métodos:
+        - filter(record): Método para filtrar los registros de registro.
+    """
+    def filter(self, record):
+        # Agrega otras cadenas que deseas filtrar
+        # strings_to_exclude = ['Created task run', 'Created flow run', 'Executing', 'Finished in state Completed']
+        strings_to_exclude = ['Submitted task run', 'Created task run', 'Finished in state Completed',
+                            'Created flow run', 'Executing']
+
+        # Devuelve False si alguno de los records tiene el string en el mensaje
+        return not any(exclude_str in record.msg for exclude_str in strings_to_exclude)
+
+
+class RemoveUnicodeErrorLogs(logging.Filter):
+    """
+    NO ES PARA USO DIRECTO EN EL CÓDIGO.
+    Este filtro está diseñado para ser utilizado por Prefect en su archivo de configuración de loggers YAML.
+
+    Filtro personalizado para excluir el log de error Unicode que es una falsa alarma y debe ser ignorado.
+
+    Atributos:
+        - strings_to_exclude (list): Lista de cadenas a excluir en los registros.
+    Métodos:
+        - filter(record): Método para filtrar los registros de registro.
+    """
+    def filter(self, record):
+        # Agrega otras cadenas que deseas filtrar
+        # strings_to_exclude = ['Created task run', 'Created flow run', 'Executing', 'Finished in state Completed']
+        strings_to_exclude = ["UnicodeDecodeError: 'utf-8' codec can't decode byte"]
+
+        # Devuelve False si alguno de los records tiene el string en el mensaje
+        return not any(exclude_str in record.msg for exclude_str in strings_to_exclude)
