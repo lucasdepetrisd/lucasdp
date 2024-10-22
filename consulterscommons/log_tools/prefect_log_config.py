@@ -175,7 +175,9 @@ class PrefectLogger(object):
                 self._run_name = actual_run_name
                 self._logger_prefect = self._initialize_logger()
 
-        return self._logger_prefect
+            return self._logger_prefect
+        else:
+            raise ValueError("No se pudo obtener el nombre del flujo o tarea. Verifique que se esta intentando obtener el logger desde un flujo o tarea de Prefect.")
 
     def cambiar_rotfile_handler_params(self, log_path: str = DEFAULT_LOG_PATH,
                                     when: str = DEFAULT_WHEN,
