@@ -21,7 +21,6 @@ from prefect import runtime
 from prefect import logging as prefect_logging
 from prefect.logging.formatters import PrefectFormatter
 
-# from consulterscommons.log_tools.parallel_log_rotator import ParallelTimedRotatingFileHandler
 
 class PrefectLogger(object):
     """

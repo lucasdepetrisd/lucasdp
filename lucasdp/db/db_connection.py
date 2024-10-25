@@ -7,7 +7,7 @@ import pyodbc
 import keyring as kr
 from prefect import task
 
-from consulterscommons.log_tools import PrefectLogger
+from lucasdp.logging import PrefectLogger
 
 logger_global = PrefectLogger(__file__)
 

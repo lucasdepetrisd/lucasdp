@@ -13,7 +13,7 @@ import pandas as pd
 import numpy as np
 from prefect import task
 
-from consulterscommons.log_tools import PrefectLogger
+from lucasdp.logging import PrefectLogger
 
 logger_global = PrefectLogger(__file__)
 

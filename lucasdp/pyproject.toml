@@ -1,0 +1,8 @@
+[project]
+name = "lucasdp"
+authors = [
+    {name = "Lucas Depetris", email = "lucasdepetris14@gmail.com"}
+]
+version = 0.6.12
+description = "LUCAS Data Package"
+readme = "README.md"
